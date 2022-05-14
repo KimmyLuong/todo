@@ -9,25 +9,27 @@ import IconButton from '@mui/material/IconButton';
 import { Comment } from '@mui/icons-material'
 import { Button, Card, CardActionArea, CardActions, CardContent } from '@mui/material';
 import { getStuff } from './Prisma'; 
+import { getDBData, addData, deleteData } from '../api/DbAPI'
 
 // import CommentIcon from '@mui/icons-material/Comment';
 
 export default function CheckboxList() {
   const [checked, setChecked] = useState([0]);
   const [data, setData] = useState([])
-
+  const [isLoading, setIsLoading] = useState(true)
   useEffect(() => {
-    async function callGetStuff() {
-      await getStuff()
+    const asyncCall = async () => {
+      setData(await getDBData())
+      setIsLoading(false)
     }
-    callGetStuff()
-  })
-
+    asyncCall()
+  }, [])
 
   const handleToggle = (value) => () => {
     const currentIndex = checked.indexOf(value);
     const newChecked = [...checked];
-
+    console.log('actual value', value)
+    console.log('dat value', newChecked)
     if (currentIndex === -1) {
       newChecked.push(value);
     } else {
@@ -36,12 +38,13 @@ export default function CheckboxList() {
 
     setChecked(newChecked);
   };
-
+  console.log(data.messages)
   return (
+    isLoading ? <></> :
     <Card sx={{ inlineSize: 'fit-content' }}>
       <CardContent>
         <List sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper' }}>
-          {data.map((value) => {
+          {data?.messages.map((value) => {
             const labelId = `checkbox-list-label-${value}`;
 
             return (
@@ -64,7 +67,7 @@ export default function CheckboxList() {
                       inputProps={{ 'aria-labelledby': labelId }}
                     />
                   </ListItemIcon>
-                  <ListItemText id={labelId} primary={`Line item ${value + 1}`} />
+                  <ListItemText id={labelId} primary={`${value.name}: ${value.message}`} />
                 </ListItemButton>
               </ListItem>
             );
@@ -72,8 +75,15 @@ export default function CheckboxList() {
         </List>
       </CardContent>
       <CardActions>
-        <Button onClick={() => setData([...data, data.length])}>Add Item</Button>
-        <Button onClick={() => setData(data.splice(data, data.length-1))}>Subtract Item</Button>
+        <Button onClick={async () => {
+          await addData({name: `Message ${data.messages.length}`, message: 'dat message'})
+          setData(await getDBData())
+        }
+        }>Add Item</Button>
+        <Button onClick={async () => {
+          await deleteData(data.messages[data.messages.length-1].id)
+          setData(await getDBData())
+        }}>Subtract Item</Button>
       </CardActions>
     </Card>
   );
